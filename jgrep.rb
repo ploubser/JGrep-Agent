@@ -1,4 +1,3 @@
-require 'rubygems'
 require 'jgrep'
 
 module MCollective
@@ -13,11 +12,7 @@ module MCollective
         :timeout     => 60
 
       def read_file
-        if request[:file].match(/.+\.yaml/)
-          return YAML.load_file(request[:file])
-        else
-          return File.read(request[:file])
-        end
+        return YAML.load_file(request[:file])
       end
 
       action :match do
