@@ -1,56 +1,45 @@
-metadata :name => "JGrep Agent",
-  :description => "Uses jgrep to inspect and match json and yaml files.",
-  :author      => "P Loubser",
-  :license     => "ASL2",
-  :version     => "0.1",
-  :url         => "https://jgrep.org",
-  :timeout     => 60
+require 'rubygems'
+require 'jgrep'
 
-action "match", :description => "Checks if a json or yaml file matches a given JGrep expression." do
-  display :always
+module MCollective
+  module Agent
+    class Jgrep<RPC::Agent
+      metadata :name => "JGrep Agent",
+        :description => "Uses jgrep examine and compare JSON and YAML files",
+        :author      => "Pieter Loubser",
+        :license     => "ASL2",
+        :version     => "0.1",
+        :url         => "https://jgrep.org",
+        :timeout     => 60
 
-  input :file,
-    :prompt      => "File name",
-    :description => "Target File",
-    :type        => :string,
-    :optional    => false,
-    :validation  => /.*/,
-    :maxlength   => 90
+      def read_file
+        if request[:file].match(/.+\.yaml/)
+          return YAML.load_file(request[:file])
+        else
+          return File.read(request[:file])
+        end
+      end
 
-  input :expression,
-    :prompt       => "JGrep Expression",
-    :description  => "The JGrep expression that the file contents will be matched on.",
-    :type         => :string,
-    :optional     => false,
-    :validation   => /.*/,
-    :maxlength    => 90
+      action :match do
+        begin
+          json = read_file
+          reply[:match] = !JGrep::jgrep(json, request[:expression]).empty?
 
+        rescue Exception
+          reply[:match] = false
+        end
+      end
 
-  output :match,
-    :description => "Did the file match the expression?",
-    :display_as  => "Match"
+      action :lookup do
+        begin
+          json = read_file
+          reply[:value] = JGrep::jgrep(json, "", request[:field])
+        rescue Exception
+          reply[:value] = nil
+        end
+      end
+    end
+  end
 end
 
-action "lookup", :description => "Find the value of a field in a yaml or json file" do
-  display :always
-
-   input :file,
-    :prompt      => "File name",
-    :description => "Target File",
-    :type        => :string,
-    :optional    => false,
-    :validation  => /.*/,
-    :maxlength   => 90
-
- input :field,
-    :prompt      => "Field name",
-    :description => "Targer Field to simplify.",
-    :type        => :string,
-    :optional    => false,
-    :validation  => /.*/,
-    :maxlength   => 90
-
- output :value,
-   :description  => "JSON representation of the specified field",
-   :display_as   => "Value"
-end
+# vi:tabstop=2:expandtab:ai:filetype=ruby
